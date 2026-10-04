@@ -1,11 +1,11 @@
 // Nobs FS Light — Arduino Nano ESP32 (ESP32-S3) USB HID gamepad firmware.
 //
 // A lighter sibling of the Nobs Autopilot build: same encoder-decoding approach,
-// scaled to 6 encoders, with 2 simple toggle switches standing in for the other
-// two boxes' larger switch banks. Exposes 20 buttons in the exact order the
-// nobs-fs app expects:
+// scaled to 6 encoders, with 2 three-position (ON-OFF-ON) toggle switches standing in
+// for the other two boxes' larger switch banks. Exposes 22 buttons in the exact order
+// the nobs-fs app expects:
 //   buttons  0..17  → 6 encoders × (CW, CCW, push)
-//   buttons 18..19  → 2 toggle switches (SW1, SW2)
+//   buttons 18..21  → 2 toggle switches × 2 (SW2 pos1, SW2 pos3, SW1 pos1, SW1 pos3)
 // See docs/arduino-esp-32-wiring.md for the full button + pin table.
 //
 // Host config: over the USB CDC serial port the app sets encoder acceleration
@@ -40,7 +40,7 @@
 // Because "CDC On Boot" is then off, the core's `Serial` is the hardware UART — so the
 // app's config port is our own USB CDC interface (the USBSerial object below). That
 // also frees D0/D1 (normally UART0 TX/RX) for plain digital input, which is how SW1
-// and SW2 get their pins below.
+// gets one of its pins below.
 //
 // Re-flashing: the running firmware reports a custom PID (and, with DFU-on-boot off, no
 // DFU runtime interface), so the IDE can't auto-enter the bootloader. Double-tap the
@@ -51,6 +51,7 @@
 #include "USBCDC.h"
 #include <EEPROM.h>
 #include <Preferences.h>
+#include "soc/usb_serial_jtag_reg.h"
 
 #if ARDUINO_USB_MODE
 #error "Set Tools > USB Mode to 'Normal mode (TinyUSB)'. Custom HID needs the TinyUSB stack."
@@ -59,8 +60,8 @@
 #error "build_opt.h is not taking effect: ARDUINO_USB_CDC_ON_BOOT must be 0. Make sure build_opt.h sits next to this .ino (it disables CDC/DFU-on-boot so the runtime USB identity works)."
 #endif
 
-// ── Custom HID gamepad: 20 buttons, no axes ───────────────────────────────────
-// 20 1-bit buttons + 4 bits of padding = a flat 3-byte report, driven through the
+// ── Custom HID gamepad: 22 buttons, no axes ───────────────────────────────────
+// 22 1-bit buttons + 2 bits of padding = a flat 3-byte report, driven through the
 // ESP32 core's USBHID device interface (same descriptor shape as Nobs Autopilot).
 static const uint8_t HID_REPORT_DESCRIPTOR[] = {
   0x05, 0x01,        // Usage Page (Generic Desktop)
@@ -68,14 +69,14 @@ static const uint8_t HID_REPORT_DESCRIPTOR[] = {
   0xA1, 0x01,        // Collection (Application)
   0x05, 0x09,        //   Usage Page (Button)
   0x19, 0x01,        //   Usage Minimum (Button 1)
-  0x29, 0x14,        //   Usage Maximum (Button 20)
+  0x29, 0x16,        //   Usage Maximum (Button 22)
   0x15, 0x00,        //   Logical Minimum (0)
   0x25, 0x01,        //   Logical Maximum (1)
   0x75, 0x01,        //   Report Size (1)
-  0x95, 0x14,        //   Report Count (20)
+  0x95, 0x16,        //   Report Count (22)
   0x81, 0x02,        //   Input (Data,Var,Abs)
   0x75, 0x01,        //   Report Size (1)
-  0x95, 0x04,        //   Report Count (4)   — padding to a whole byte
+  0x95, 0x02,        //   Report Count (2)   — padding to a whole byte
   0x81, 0x03,        //   Input (Const,Var,Abs)
   0xC0               // End Collection
 };
@@ -88,7 +89,7 @@ public:
 
   // Set/clear one button bit in the pending report (mirrors Joystick.setButton).
   void setButton(uint8_t index, uint8_t value) {
-    if (index >= 20) return;
+    if (index >= 22) return;
     uint8_t byteIdx = index >> 3;
     uint8_t mask    = 1 << (index & 7);
     if (value) report[byteIdx] |= mask;
@@ -201,26 +202,30 @@ extern "C" const uint16_t* tud_descriptor_string_cb(uint8_t index, uint16_t lang
 // Encoders: A/B quadrature pins + S push button. Encoder common terminals and the
 // switches' common terminals are all wired to GND.
 //
-// D13 is deliberately left unused: on the Nano ESP32 it doubles as the built-in
-// amber LED (GPIO48 / LED_BUILTIN), and every other pin (D0–D12, A0–A7) is already
-// spoken for below.
-const uint8_t encA[6]    = { A0, A3, A6, D11, D8, D5 };
-const uint8_t encB[6]    = { A1, A4, A7, D10, D7, D3 };
-const uint8_t encPush[6] = { A2, A5, D12, D9,  D6, D2 };
+// Every D/A header pin is used (the status LED sits on B0, see below). A0..A7 are the
+// same pins as D17..D24. D13 doubles as
+// the built-in amber LED (GPIO48), so that LED stays lit while the firmware runs.
+const uint8_t encA[6]    = { D12, D9, D6, D3, D13, A2 };
+const uint8_t encB[6]    = { D11, D8, D5, D2, A0,  A3 };
+const uint8_t encPush[6] = { D10, D7, D4, D0, A1,  A4 };
 
-// Toggle switches SW1..SW2 (signal terminal to the MCU, common terminal to GND).
-const uint8_t swPin[2]   = { D1, D0 };
+// 3-position ON-OFF-ON toggle switches SW1..SW2: terminals 1 and 3 go to the MCU and
+// the common (2) to GND. Centre = neither pin LOW. Order: SW2 t1, SW2 t3, SW1 t1, SW1 t3.
+const uint8_t swPin[4]   = { A5, A6, A7, D1 };
 
 // NOTE: every pin above is driven with INPUT_PULLUP, so the closed-to-GND wiring
 // reads LOW = pressed. All of these GPIOs support the ESP32-S3 internal pull-up;
 // if a future revision moves a signal onto a pull-up-less pad, add an external
 // 10 kΩ pull-up to 3V3 there.
 
-// ── Status LED (D4) ────────────────────────────────────────────────────────────
-// Blinks while booting/waiting for USB enumeration, steady once enumerated. D4 also
-// doubles as DSR (a USB CDC modem-control signal), but this sketch never drives DSR,
-// so the pin is free for plain GPIO use.
-const uint8_t STATUS_LED_PIN = D4;
+// ── Status LED (B0) ────────────────────────────────────────────────────────────
+// Blinks while booting/waiting for USB enumeration, steady once enumerated. All the
+// D/A pins are taken by the controls, so the LED sits on the B0 header pin. B0 is
+// GPIO46, which the core names LED_RED: it also drives the red channel of the
+// on-board RGB LED, active-low, so that one shows the inverse of the status LED.
+// GPIO46 is a boot strapping pin that must read LOW at reset; the LED + resistor to
+// GND keeps it there. (Never use B1 instead: that is GPIO0, the boot-mode pin.)
+const uint8_t STATUS_LED_PIN = LED_RED;
 
 // ── Button index map (must match the wiring doc / src/panel/panel.ts) ─────────
 const uint8_t encBase[6] = { 0, 3, 6, 9, 12, 15 }; // CW = base, CCW = base + 1, push = base + 2
@@ -417,21 +422,63 @@ void onUsbEvent(void* arg, esp_event_base_t base, int32_t id, void* eventData) {
 }
 
 // Blink while booting/waiting for USB enumeration; steady once enumerated
-// (hostConnected, set from the USB started/stopped events above). Non-blocking so it
-// never stalls loop().
+// (hostConnected, set from the USB started/stopped events above). If a host never
+// shows up (unit powered from a data-less USB port/charger, or no PC attached), give
+// up blinking after STATUS_LED_TIMEOUT_MS and go dark rather than blink forever — the
+// wait window restarts if the host later disconnects. Non-blocking so it never stalls
+// loop().
+const uint32_t STATUS_LED_TIMEOUT_MS = 10000;
+
 void updateStatusLed() {
+  static bool     wasConnected = false;
+  static uint32_t waitStart    = 0;
+  static uint32_t lastToggle   = 0;
+  static bool     ledOn        = false;
+  uint32_t now = millis();
+
   if (hostConnected) {
     digitalWrite(STATUS_LED_PIN, HIGH);
+    wasConnected = true;
     return;
   }
-  static uint32_t lastToggle = 0;
-  static bool     ledOn      = false;
-  uint32_t now = millis();
+
+  if (wasConnected) {
+    // Just dropped from connected to disconnected — restart the blink window.
+    wasConnected = false;
+    waitStart = now;
+  }
+
+  if (now - waitStart >= STATUS_LED_TIMEOUT_MS) {
+    digitalWrite(STATUS_LED_PIN, LOW); // gave up waiting; stay dark until enumerated
+    return;
+  }
+
   if (now - lastToggle >= 150) {
     lastToggle = now;
     ledOn = !ledOn;
     digitalWrite(STATUS_LED_PIN, ledOn);
   }
+}
+
+// ── Clean USB hand-over on a cold plug-in ─────────────────────────────────────
+// At power-up the ESP32-S3 first appears on the bus as its built-in "USB JTAG/serial
+// debug unit" (303A:1001). USB.begin() then hands the USB pins to TinyUSB, but if the
+// host never sees the old device drop off the bus it keeps the stale 303A:1001 entry
+// and never enumerates ours — the board then only works after a re-flash (which
+// restarts straight into TinyUSB). Dropping the D+ pull-up for a moment makes the host
+// register a real disconnect first, so it enumerates the Nobs device afresh.
+const uint32_t USB_DETACH_MS = 250;
+
+void detachBuiltinUsb() {
+  SET_PERI_REG_MASK(USB_SERIAL_JTAG_CONF0_REG, USB_SERIAL_JTAG_PAD_PULL_OVERRIDE);
+  CLEAR_PERI_REG_MASK(USB_SERIAL_JTAG_CONF0_REG, USB_SERIAL_JTAG_DP_PULLUP);
+  delay(USB_DETACH_MS);
+}
+
+// Hand pull-up control back (register defaults) once TinyUSB owns the pins.
+void releaseBuiltinUsbPulls() {
+  SET_PERI_REG_MASK(USB_SERIAL_JTAG_CONF0_REG, USB_SERIAL_JTAG_DP_PULLUP);
+  CLEAR_PERI_REG_MASK(USB_SERIAL_JTAG_CONF0_REG, USB_SERIAL_JTAG_PAD_PULL_OVERRIDE);
 }
 
 void setup() {
@@ -447,7 +494,7 @@ void setup() {
     pulseBtn[i] = -1;
     phaseUntil[i] = 0;
   }
-  for (uint8_t i = 0; i < 2; i++) {
+  for (uint8_t i = 0; i < 4; i++) {
     pinMode(swPin[i], INPUT_PULLUP);
   }
   pinMode(STATUS_LED_PIN, OUTPUT);
@@ -471,7 +518,9 @@ void setup() {
   Joystick.begin();        // create the HID report semaphores/mutex
   USB.onEvent(onUsbEvent); // detect USB enumeration, for the status LED
   USBSerial.begin(115200); // USB CDC config port; do NOT wait on it (would stall)
+  detachBuiltinUsb();      // make the host drop the boot-time 303A:1001 device first
   USB.begin();             // build + start the composite USB device (HID + CDC)
+  releaseBuiltinUsbPulls();
 }
 
 void loop() {
@@ -537,7 +586,7 @@ void loop() {
   }
 
   // ── Toggle switches ────────────────────────────────────────────────────────
-  for (uint8_t i = 0; i < 2; i++) {
+  for (uint8_t i = 0; i < 4; i++) {
     Joystick.setButton(swBase + i, digitalRead(swPin[i]) == LOW ? 1 : 0);
   }
 

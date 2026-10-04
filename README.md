@@ -7,8 +7,8 @@ app with no drivers to install.
 
 Same physical layout as [Nobs Panel](https://github.com/ibovegar/nobs-fs-panel) (an 8-position
 front panel), but 6 of the 8 toggle-switch positions are rotary encoders instead: each has a
-push button and reports CW/CCW rotation as momentary presses, for **20 buttons** total (6 × 3 for
-the encoders + 2 for the switches).
+push button and reports CW/CCW rotation as momentary presses, for **22 buttons** total (6 × 3 for
+the encoders + 2 × 2 for the three-position switches).
 
 ## Design Philosophy
 

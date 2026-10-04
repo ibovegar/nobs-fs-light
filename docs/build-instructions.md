@@ -14,9 +14,10 @@ Before starting, gather everything on the [bill of materials](bill-of-materials.
 1. Solder the two 26-position female pin header sockets to the stripboard, spaced to match the
    Arduino Nano ESP32's own header pitch, then seat the Arduino into them.
 2. Solder the 4 six-position terminal blocks to the stripboard, giving you screw terminals for the
-   20 signal wires (6 encoders × 3 terminals + 2 switches × 1 terminal) plus a shared ground rail.
+   22 signal wires (6 encoders × 3 terminals + 2 switches × 2 terminals) plus a shared ground rail.
 3. Wire the 120 Ω resistor in series with the status LED's anode, and run the LED's anode/cathode
-   to **D4** / **GND** as described in the wiring map.
+   to **B0** / **GND** as described in the wiring map. Leave **B1** (next to it) unconnected: tying
+   it to ground stops the board from starting.
 4. Double-check every connection against [arduino-esp-32-wiring.md](arduino-esp-32-wiring.md)
    before applying USB power. A multimeter continuity check across the ground loop catches most
    wiring mistakes early.
@@ -29,7 +30,8 @@ Before starting, gather everything on the [bill of materials](bill-of-materials.
    wire one to signal and the other to the shared ground rail, per the encoder's datasheet), and
    the encoder body/shaft ground tab if present. Wire Phase A, Phase B, and the push switch's
    signal terminal to their pins per the wiring map; wire every remaining common terminal to GND.
-3. Each toggle switch has 2 terminals: wire one to its signal pin and the other to GND.
+3. Each toggle switch is a 3-position ON-OFF-ON type with 3 terminals: wire terminals 1 and 3 to
+   their signal pins and the centre terminal (2) to GND.
 4. Insulate each soldered joint with heat-shrink tubing.
 5. Press the knurled knob caps onto the encoder shafts and the bat-lever caps onto the toggle
    switches.

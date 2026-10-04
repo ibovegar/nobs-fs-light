@@ -21,10 +21,10 @@ A few friendly notes before you start buying:
 | :--- | :--- | :--- | :--- | :--- |
 | **1.1** | 1 | Arduino Nano ESP32 (with headers) | [Arduino / ABX00083](https://no.mouser.com/ProductDetail/Arduino/ABX00083) | Main microcontroller (ESP32-S3, USB HID, VID 0x303A / PID 0x80FC) |
 | **1.2** | 6 | Rotary Encoder, 12 mm, with Momentary Push Switch, 24 detents | [Bourns / PEC11R-4215F-S0024](https://www.mouser.com/ProductDetail/Bourns/PEC11R-4215F-S0024) | ENC1–ENC6 |
-| **1.3** | 2 | SPST Toggle Switch, On-Off (2-position) | [Apem / 631H/2](https://www.mouser.com/ProductDetail/Apem/631H-2) | SW1–SW2 |
+| **1.3** | 2 | SPDT Toggle Switch, ON-OFF-ON (3-position) | *Part number to be chosen* | SW1–SW2 |
 | **1.4** | 1 | Stripboard, 50 × 80 mm | [BusBoard Prototype Systems / ST1](https://no.mouser.com/ProductDetail/BusBoard-Prototype-Systems/ST1) | Controller board carrier for the Arduino, pin headers, and terminal blocks |
 | **1.5** | 2 | Female Pin Header Socket, 26-position, 2.54 mm pitch | [3M Electronic Solutions Division / 929850-01-26-RA](https://no.mouser.com/ProductDetail/3M-Electronic-Solutions-Division/929850-01-26-RA) | Sockets soldered to the stripboard to seat the Arduino Nano ESP32 |
-| **1.6** | 4 | Fixed Terminal Block, 6-position, 2.54 mm pitch | [GCT / TBC05-06-1-G-G](https://no.mouser.com/ProductDetail/GCT/TBC05-06-1-G-G) | Screw-down wiring for the 20 encoder/switch signal wires and ground |
+| **1.6** | 4 | Fixed Terminal Block, 6-position, 2.54 mm pitch | [GCT / TBC05-06-1-G-G](https://no.mouser.com/ProductDetail/GCT/TBC05-06-1-G-G) | Screw-down wiring for the 22 encoder/switch signal wires and ground |
 | **1.7** | 1 | 3 mm Green LED, Diffused, 2.2 V | [Lumex / SSL-LX30FT4GD](https://no.mouser.com/ProductDetail/Lumex/SSL-LX30FT4GD?qs=7jmq9uQgtYG4HR2h%252BlgbMw%3D%3D) | Front-plate status indicator |
 | **1.8** | 1 | 120 Ω Resistor, 1/4 W, ±1%, Metal Film | [KOA Speer / MFS1/4DCT52R1200F](https://no.mouser.com/ProductDetail/KOA-Speer/MFS1-4DCT52R1200F?qs=ddCg%252BR5cWn20oJHZLuYO%2FQ%3D%3D) | Current-limiting resistor for the status LED |
 | **1.9** | 6 | Knurled Encoder Knob, 6 mm D-shaft | Generic aftermarket | Grip/cap for ENC1–ENC6 |
@@ -75,7 +75,7 @@ you build more than one or already have them on hand.
 | Category | Items | Estimated Cost |
 | :--- | :--- | ---: |
 | Microcontroller | Arduino Nano ESP32 (genuine; clones are cheaper) | $20 – $28 |
-| Encoders & switches | 6 × Bourns PEC11R-4215F-S0024 + 2 × Apem 631H/2 | $30 – $50 |
+| Encoders & switches | 6 × Bourns PEC11R-4215F-S0024 + 2 × 3-position toggle switches | $30 – $50 |
 | Board & connectors | Stripboard, 2 × pin headers, 4 × terminal blocks, status LED | $12 – $18 |
 | Fasteners | Heat-set inserts (21) and M3/M4 screws (21) | $10 – $18 |
 | Enclosure (3D printed) | Filament for top, bottom, mounting plate, front plate | $5 – $15 |

@@ -2,8 +2,8 @@
 
 This is the program (the "firmware") that runs on an **Arduino Nano ESP32** and turns it into a
 USB game controller for Microsoft Flight Simulator. Once loaded, the board shows up to your PC and
-the Nobs app as **"Nobs FS Light"** with **20 buttons**: 6 rotary encoders (CW, CCW, and push each)
-and 2 toggle switches. Wiring is in
+the Nobs app as **"Nobs FS Light"** with **22 buttons**: 6 rotary encoders (CW, CCW, and push each)
+and 2 three-position toggle switches. Wiring is in
 [`docs/arduino-esp-32-wiring.md`](../../docs/arduino-esp-32-wiring.md).
 
 > 👍 Everything you need is in this folder. You don't edit any Arduino files. Keep
@@ -55,7 +55,7 @@ Put the board into **update mode** by hand first:
 - **Nobs app:** the panel is detected automatically; turn the encoders and flip the switches to
   watch them react.
 - **Windows:** press `Win`, type **Set up USB game controllers**, open the device's **Properties**,
-  and turn/press the controls to see the 20 buttons react.
+  and turn/press the controls to see the 22 buttons react.
 
 ## Changing the board's name / ID
 

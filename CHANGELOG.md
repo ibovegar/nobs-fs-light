@@ -11,7 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Project scaffold, modeled on [nobs-fs-panel](https://github.com/ibovegar/nobs-fs-panel): same
   folder layout, `.gitignore`, and AGPLv3 license.
 - Wiring map ([docs/arduino-esp-32-wiring.md](docs/arduino-esp-32-wiring.md)): 6 encoders (18
-  pins) + 2 toggle switches (2 pins) + status LED, all fit onto the Arduino Nano ESP32's pins.
+  pins) + 2 three-position toggle switches (4 pins) fill every D/A pin on the Arduino Nano ESP32,
+  with the status LED on B0.
 - Bill of Materials ([docs/bill-of-materials.md](docs/bill-of-materials.md)): core electronics,
   encoders, switches, structural/enclosure hardware (pending final mounting-plate design), and a
   per-panel project cost estimate.
@@ -25,7 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ([firmware/arduino_eps32_nano/arduino_eps32_nano.ino](firmware/arduino_eps32_nano/arduino_eps32_nano.ino)):
   6-encoder quadrature decoding, per-encoder acceleration, and dynamic USB identity, adapted from
   [nobs-fs-autopilot](https://github.com/ibovegar/nobs-fs-autopilot)'s proven encoder code, plus 2
-  single-pin toggle switches.
+  three-position (ON-OFF-ON) toggle switches read through both outer terminals, for 22 HID
+  buttons. Before starting its own USB the firmware briefly drops the USB pull-up, so the host
+  sees the chip's boot-time `303A:1001` device disconnect and enumerates the Nobs device on a
+  cold plug-in (without it the board was only detected right after a flash).
 - Enclosure, mounting plate, and front panel CAD
   ([models/](models/): shared `enclosure_top`/`enclosure_bottom` shells plus new
   `nobs_light_mounting_plate.stl` and `nobs_light_frontpanel.stl` for the 6-encoder / 2-switch
